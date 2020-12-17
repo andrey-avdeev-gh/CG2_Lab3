@@ -80,9 +80,7 @@ void task_2()
 	{
 		Vec3i c = circles[i];
 		Point center = Point(c[0], c[1]);
-		// circle center
 		circle(src, center, 1, Scalar(0, 100, 100), 3, LINE_AA);
-		// circle outline
 		int radius = c[2];
 		circle(src, center, radius, Scalar(255, 0, 255), 3, LINE_AA);
 	}
@@ -94,26 +92,25 @@ void task_2()
 
 void task_3() 
 {
-	Mat image = chooseimg(), dst, gray, bin;
-	gray = Mat::zeros(image.rows, image.cols, CV_8UC1);
-	bin = Mat::zeros(image.rows, image.cols, CV_8UC1);
-	dst = image;
-	namedWindow("original", WINDOW_AUTOSIZE);
-	namedWindow("binary", WINDOW_AUTOSIZE);
-	namedWindow("contours", WINDOW_AUTOSIZE);
-
-	cvtColor(image, gray, COLOR_RGB2GRAY);
-
-	inRange(gray, Scalar(40), Scalar(150), bin);
-	int contoursCont = findContours(bin, storage, &contours, sizeof(CvContour), RETR_LIST, CHAIN_APPROX_SIMPLE, Point(0, 0));
-
-	for (CvSeq* seq0 = contours; seq0 != 0; seq0 = seq0->h_next) {/		drawContours(dst, seq0, 255, CV_RGB(0, 0, 250), 0, 1, 8);
+	Mat src = chooseimg();
+	Mat gray;
+	cvtColor(src, gray, COLOR_BGR2GRAY);
+	medianBlur(gray, gray, 5);
+	vector<Vec3f> lines;
+	HoughLines(gray, lines, HOUGH_GRADIENT, 1,
+		gray.rows / 180,
+		100, 30, 1, 30
+	);
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		Vec3i c = lines[i];
+		Point center = Point(c[0], c[1]);
+		circle(src, center, 1, Scalar(0, 100, 100), 3, LINE_AA);
+		int radius = c[2];
+		circle(src, center, radius, Scalar(255, 0, 255), 3, LINE_AA);
 	}
-	imshow("original", image);
-	imshow("binary", bin);
-	imshow("contours", dst);
-
-	waitKey(0);
+	imshow("detected lines", src);
+	waitKey();
 	destroyAllWindows();
 	main();
 }
