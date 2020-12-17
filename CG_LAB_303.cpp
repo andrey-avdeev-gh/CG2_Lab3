@@ -71,21 +71,14 @@ void task_2()
 	Mat image = src;
 
 	GaussianBlur(image, image, 5.0f, 5);
-	// поиск кругов
-	CvSeq* results = cvHoughCircles(
-		image,
-		storage,
-		CV_HOUGH_GRADIENT,
-		10,
-		image->width / 5
-	);
-	// пробегаемся по кругам и рисуем их на оригинальном изображении
+
+	CvSeq* results = cvHoughCircles(image,storage,CV_HOUGH_GRADIENT,10,	image->width / 5);
 	for (int i = 0; i < results->total; i++) {
-		float* p = (float*)cvGetSeqElem(results, i);
-		CvPoint pt = cvPoint(cvRound(p[0]), cvRound(p[1]));
-		cvCircle(src, pt, cvRound(p[2]), CV_RGB(0xff, 0, 0));
+		float* p = (float*)GetSeqElem(results, i);
+		Point pt = Point(cvRound(p[0]), cvRound(p[1]));
+		circle(src, pt, cvRound(p[2]), CV_RGB(0xff, 0, 0));
 	}
-	// показываем
+
 	namedWindow("cvHoughCircles", 1);
 	imshow("cvHoughCircles", src);
 
@@ -101,7 +94,7 @@ void task_2_var2()
 
 	src = Mat::zeros(image.rows, image.cols, CV_8UC1);
 	dst = Mat::zeros(image.rows, image.cols, CV_8UC1);
-	// хранилище памяти для хранения найденных линий
+
 	CvMemStorage* storage = cvCreateMemStorage(0);
 	CvSeq* lines = 0;
 	int i = 0;
@@ -110,16 +103,11 @@ void task_2_var2()
 	dst = cvCreateImage(cvGetSize(src), 8, 1);
 	color_dst = cvCreateImage(cvGetSize(src), 8, 3);
 
-	// детектирование границ
 	Canny(src, dst, 50, 200, 3);
 
-	// конвертируем в цветное изображение
 	cvtColor(dst, color_dst, COLOR_GRAY2BGR);
-
-	// нахождение линий
 	lines = houghLines2(dst, storage, CV_HOUGH_PROBABILISTIC, 1, CV_PI / 180, 50, 50, 10);
 
-	// нарисуем найденные линии
 	for (i = 0; i < lines->total; i++) {
 		Point* line = (Point*)cvGetSeqElem(lines, i);
 		Line(color_dst, line[0], line[1], CV_RGB(255, 0, 0), 3, AA, 0);
@@ -139,19 +127,13 @@ void task_2_var2()
 
 void task_3() 
 {
-	// имя картинки задаётся первым параметром
-	char* filename = argc >= 2 ? argv[1] : "Image0.jpg";
-	// получаем картинку
-	image = cvLoadImage(filename, 1);
-
-	printf("[i] image: %s\n", filename);
-	assert(image != 0);
+	Mat image = chooseimg(), dst, gray, bin;
 
 	// создаём одноканальные картинки
-	gray = cvCreateImage(cvGetSize(image), IPL_DEPTH_8U, 1);
-	bin = cvCreateImage(cvGetSize(image), IPL_DEPTH_8U, 1);
+	gray = Mat::zeros(image.rows, image.cols, CV_8UC1);
+	bin = Mat::zeros(image.rows, image.cols, CV_8UC1);
 	// клонируем
-	dst = cloneImage(image);
+	dst = image;
 	// окно для отображения картинки
 	namedWindow("original", WINDOW_AUTOSIZE);
 	namedWindow("binary", WINDOW_AUTOSIZE);
@@ -161,17 +143,16 @@ void task_3()
 	cvtColor(image, gray, COLOR_RGB2GRAY);
 
 	// преобразуем в двоичное
-	cvInRangeS(gray, cvScalar(40), cvScalar(150), bin); // atoi(argv[2])
+	cvInRangeS(gray, Scalar(40), Scalar(150), bin); // atoi(argv[2])
 
-	CvMemStorage* storage = cvCreateMemStorage(0);
 	CvSeq* contours = 0;
 
 	// находим контуры
-	int contoursCont = cvFindContours(bin, storage, &contours, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0, 0));
+	int contoursCont = findContours(bin, storage, &contours, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0, 0));
 
 	// нарисуем контуры
 	for (CvSeq* seq0 = contours; seq0 != 0; seq0 = seq0->h_next) {
-		cvDrawContours(dst, seq0, CV_RGB(255, 216, 0), CV_RGB(0, 0, 250), 0, 1, 8); // рисуем контур
+		drawContours(dst, seq0, 255, CV_RGB(0, 0, 250), 0, 1, 8); // рисуем контур
 	}
 	imshow("original", image);
 	imshow("binary", bin);
@@ -179,6 +160,7 @@ void task_3()
 
 	waitKey(0);
 	destroyAllWindows();
+	main();
 }
 
 int main()
