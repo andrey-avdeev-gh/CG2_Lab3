@@ -41,68 +41,36 @@ Mat chooseimg()
 
 void task_1()
 {
-	IplImage* image = 0;
-	IplImage* gray = 0;
-	IplImage* dst = 0;
+	Mat image = chooseimg(), gray, dst;
 
-		// имя картинки задаётся первым параметром
-		char* filename = argc == 2 ? argv[1] : "Image0.jpg";
-		// получаем картинку
-		image = cvLoadImage(filename, 1);
 
-		printf("[i] image: %s\n", filename);
-		assert(image != 0);
+		gray = Mat::zeros(image.rows, image.cols, CV_8UC1);
+		dst = Mat::zeros(image.rows, image.cols, CV_8UC1);
 
-		// создаём одноканальные картинки
-		gray = cvCreateImage(cvGetSize(image), IPL_DEPTH_8U, 1);
-		dst = cvCreateImage(cvGetSize(image), IPL_DEPTH_8U, 1);
+		namedWindow("original", WINDOW_AUTOSIZE);
+		namedWindow("gray", WINDOW_AUTOSIZE);
+		namedWindow("cvCanny", WINDOW_AUTOSIZE);
 
-		// окно для отображения картинки
-		cvNamedWindow("original", CV_WINDOW_AUTOSIZE);
-		cvNamedWindow("gray", CV_WINDOW_AUTOSIZE);
-		cvNamedWindow("cvCanny", CV_WINDOW_AUTOSIZE);
 
-		// преобразуем в градации серого
-		cvCvtColor(image, gray, CV_RGB2GRAY);
+		cvtColor(image, gray, COLOR_RGB2GRAY);
+		Canny(gray, dst, 10, 100, 3);
 
-		// получаем границы
-		cvCanny(gray, dst, 10, 100, 3);
+		imshow("original", image);
+		imshow("gray", gray);
+		imshow("cvCanny", dst);
 
-		// показываем картинки
-		cvShowImage("original", image);
-		cvShowImage("gray", gray);
-		cvShowImage("cvCanny", dst);
+		waitKey(0);
 
-		// ждём нажатия клавиши
-		cvWaitKey(0);
-
-		// освобождаем ресурсы
-		cvReleaseImage(&image);
-		cvReleaseImage(&gray);
-		cvReleaseImage(&dst);
-		// удаляем окна
-		cvDestroyAllWindows();
+		destroyAllWindows();
 }
 
 
 void task_2()
 {
-	IplImage* image = 0;
-	// имя картинки задаётся первым параметром
-	char* filename = argc >= 2 ? argv[1] : "Image0.jpg";
-	// получаем картинку (в градациях серого)
-	image = cvLoadImage(filename, CV_LOAD_IMAGE_GRAYSCALE);
+	Mat src = chooseimg();
+	Mat image = src;
 
-	printf("[i] image: %s\n", filename);
-	assert(image != 0);
-
-	// загрузим оригинальное изображении
-	IplImage* src = cvLoadImage(filename);
-
-	// хранилище памяти для кругов
-	CvMemStorage* storage = cvCreateMemStorage(0);
-	// сглаживаем изображение
-	cvSmooth(image, image, CV_GAUSSIAN, 5, 5);
+	GaussianBlur(image, image, 5.0f, 5);
 	// поиск кругов
 	CvSeq* results = cvHoughCircles(
 		image,
@@ -118,39 +86,21 @@ void task_2()
 		cvCircle(src, pt, cvRound(p[2]), CV_RGB(0xff, 0, 0));
 	}
 	// показываем
-	cvNamedWindow("cvHoughCircles", 1);
-	cvShowImage("cvHoughCircles", src);
+	namedWindow("cvHoughCircles", 1);
+	imshow("cvHoughCircles", src);
 
-	// ждём нажатия клавиши
-	cvWaitKey(0);
-
-	// освобождаем ресурсы
-	cvReleaseMemStorage(&storage);
-	cvReleaseImage(&image);
-	cvReleaseImage(&src);
-	cvDestroyAllWindows();
+	waitKey(0);
+	destroyAllWindows();
+	main();
 }
 
 
 void task_2_var2()
 {
-	IplImage* src = 0;
-	IplImage* dst = 0;
-	IplImage* color_dst = 0;
+	Mat image = chooseimg(), src, dst, color_dst;
 
-	// имя картинки задаётся первым параметром
-	char* filename = argc >= 2 ? argv[1] : "Image0.jpg";
-	// получаем картинку (в градациях серого)
-	src = cvLoadImage(filename, CV_LOAD_IMAGE_GRAYSCALE);
-
-	if (!src) {
-		printf("[!] Error: cant load image: %s \n", filename);
-		return -1;
-	}
-
-	printf("[i] image: %s\n", filename);
-
-
+	src = Mat::zeros(image.rows, image.cols, CV_8UC1);
+	dst = Mat::zeros(image.rows, image.cols, CV_8UC1);
 	// хранилище памяти для хранения найденных линий
 	CvMemStorage* storage = cvCreateMemStorage(0);
 	CvSeq* lines = 0;
@@ -161,36 +111,29 @@ void task_2_var2()
 	color_dst = cvCreateImage(cvGetSize(src), 8, 3);
 
 	// детектирование границ
-	cvCanny(src, dst, 50, 200, 3);
+	Canny(src, dst, 50, 200, 3);
 
 	// конвертируем в цветное изображение
-	cvCvtColor(dst, color_dst, CV_GRAY2BGR);
+	cvtColor(dst, color_dst, COLOR_GRAY2BGR);
 
 	// нахождение линий
-	lines = cvHoughLines2(dst, storage, CV_HOUGH_PROBABILISTIC, 1, CV_PI / 180, 50, 50, 10);
+	lines = houghLines2(dst, storage, CV_HOUGH_PROBABILISTIC, 1, CV_PI / 180, 50, 50, 10);
 
 	// нарисуем найденные линии
 	for (i = 0; i < lines->total; i++) {
-		CvPoint* line = (CvPoint*)cvGetSeqElem(lines, i);
-		cvLine(color_dst, line[0], line[1], CV_RGB(255, 0, 0), 3, CV_AA, 0);
+		Point* line = (Point*)cvGetSeqElem(lines, i);
+		Line(color_dst, line[0], line[1], CV_RGB(255, 0, 0), 3, AA, 0);
 	}
 
 	// показываем
-	cvNamedWindow("Source", 1);
-	cvShowImage("Source", src);
+	namedWindow("Source", 1);
+	imshow("Source", src);
 
-	cvNamedWindow("Hough", 1);
-	cvShowImage("Hough", color_dst);
+	namedWindow("Hough", 1);
+	imshow("Hough", color_dst);
 
-	// ждём нажатия клавиши
-	cvWaitKey(0);
-
-	// освобождаем ресурсы
-	cvReleaseMemStorage(&storage);
-	cvReleaseImage(&src);
-	cvReleaseImage(&dst);
-	cvReleaseImage(&color_dst);
-	cvDestroyAllWindows();
+	waitKey(0);
+	destroyAllWindows();
 	main();
 }
 
@@ -208,14 +151,14 @@ void task_3()
 	gray = cvCreateImage(cvGetSize(image), IPL_DEPTH_8U, 1);
 	bin = cvCreateImage(cvGetSize(image), IPL_DEPTH_8U, 1);
 	// клонируем
-	dst = cvCloneImage(image);
+	dst = cloneImage(image);
 	// окно для отображения картинки
-	cvNamedWindow("original", CV_WINDOW_AUTOSIZE);
-	cvNamedWindow("binary", CV_WINDOW_AUTOSIZE);
-	cvNamedWindow("contours", CV_WINDOW_AUTOSIZE);
+	namedWindow("original", WINDOW_AUTOSIZE);
+	namedWindow("binary", WINDOW_AUTOSIZE);
+	namedWindow("contours", WINDOW_AUTOSIZE);
 
 	// преобразуем в градации серого
-	cvCvtColor(image, gray, CV_RGB2GRAY);
+	cvtColor(image, gray, COLOR_RGB2GRAY);
 
 	// преобразуем в двоичное
 	cvInRangeS(gray, cvScalar(40), cvScalar(150), bin); // atoi(argv[2])
@@ -230,22 +173,12 @@ void task_3()
 	for (CvSeq* seq0 = contours; seq0 != 0; seq0 = seq0->h_next) {
 		cvDrawContours(dst, seq0, CV_RGB(255, 216, 0), CV_RGB(0, 0, 250), 0, 1, 8); // рисуем контур
 	}
+	imshow("original", image);
+	imshow("binary", bin);
+	imshow("contours", dst);
 
-	// показываем картинки
-	cvShowImage("original", image);
-	cvShowImage("binary", bin);
-	cvShowImage("contours", dst);
-
-	// ждём нажатия клавиши
-	cvWaitKey(0);
-
-	// освобождаем ресурсы
-	cvReleaseImage(&image);
-	cvReleaseImage(&gray);
-	cvReleaseImage(&bin);
-	cvReleaseImage(&dst);
-	// удаляем окна
-	cvDestroyAllWindows();
+	waitKey(0);
+	destroyAllWindows();
 }
 
 int main()
